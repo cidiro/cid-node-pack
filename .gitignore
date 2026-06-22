@@ -51,3 +51,9 @@ resources/load_image_history.json
 # Project specific
 wildcards/*
 resources/*
+
+.codeiumignore
+.cursorignore
+.claude
+.codex
+config/credentials.json

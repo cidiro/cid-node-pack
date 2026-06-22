@@ -1,4 +1,4 @@
-import { app } from "../../../scripts/app.js";
+import { app } from "../../scripts/app.js";
 
 app.registerExtension({
     name: "CidAnySyncExtension",
@@ -98,47 +98,71 @@ app.registerExtension({
                             this.addOutput("*", "*");
                         }
                     } else {
-                        // When disconnecting, check if there are connected inputs after this one
-                        let nextConnectedInputIndex = -1;
+                        // Store all connections after the disconnected slot
+                        const connectionsToMove = [];
                         for (let i = index + 1; i < this.inputs.length; i++) {
-                            if (this.inputs[i] && this.getInputLink(i) != null) {
-                                nextConnectedInputIndex = i;
-                                break;
+                            const link = this.getInputLink(i);
+                            if (link) {
+                                const originNode = app.graph.getNodeById(link.origin_id);
+                                const originSlot = link.origin_slot;
+                                connectionsToMove.push({
+                                    originNode: originNode,
+                                    originSlot: originSlot,
+                                    targetSlot: i,
+                                    type: this.inputs[i].type
+                                });
                             }
                         }
-
-                        // If a later input is connected, move that connection to this slot
-                        if (nextConnectedInputIndex > -1) {
-                            const link = this.getInputLink(nextConnectedInputIndex);
-                            const originNode = app.graph.getNodeById(link.origin_id);
-                            const originSlot = link.origin_slot;
-
-                            this.disconnectInput(nextConnectedInputIndex);
-
-                            originNode.connect(originSlot, this, index);
-
-                            this.onConnectionsChange(type, nextConnectedInputIndex, false, null);
-                        } else {
-                            let highestConnectedInput = -1;
-                            for (let i = 0; i < this.inputs.length; i++) {
-                                if (this.inputs[i] && this.getInputLink(i) != null) {
-                                    highestConnectedInput = i;
-                                }
+                        
+                        // Disconnect all inputs after the disconnected one
+                        for (let i = this.inputs.length - 1; i > index; i--) {
+                            if (this.getInputLink(i)) {
+                                this.disconnectInput(i);
                             }
-
-                            const keepCount = Math.max(highestConnectedInput + 2, 1);
-
-                            while (this.inputs.length > keepCount) {
-                                this.removeInput(this.inputs.length - 1);
-                                this.removeOutput(this.outputs.length - 1);
+                        }
+                        
+                        // Reset the types of the disconnected slot
+                        if (index < this.inputs.length) {
+                            this.inputs[index].type = "*";
+                            this.outputs[index].type = "*";
+                            this.outputs[index].label = "*";
+                            this.outputs[index].name = "*";
+                        }
+                        
+                        // Reconnect all stored connections one slot up
+                        for (const conn of connectionsToMove) {
+                            const newSlot = conn.targetSlot - 1;
+                            conn.originNode.connect(conn.originSlot, this, newSlot);
+                            
+                            // Set the type for the new connection if it wasn't "*"
+                            if (conn.type && conn.type !== "*") {
+                                this.inputs[newSlot].type = conn.type;
+                                this.outputs[newSlot].type = conn.type;
+                                this.outputs[newSlot].label = conn.type;
+                                this.outputs[newSlot].name = conn.type;
                             }
-
-                            if (index < this.inputs.length) {
-                                this.inputs[index].type = "*";
-                                this.outputs[index].type = "*";
-                                this.outputs[index].label = "*";
-                                this.outputs[index].name = "*";
+                        }
+                        
+                        // Adjust the number of inputs/outputs
+                        let highestConnectedInput = -1;
+                        for (let i = 0; i < this.inputs.length; i++) {
+                            if (this.inputs[i] && this.getInputLink(i) != null) {
+                                highestConnectedInput = i;
                             }
+                        }
+                        
+                        const keepCount = Math.max(highestConnectedInput + 2, 1);
+                        
+                        // Remove excess inputs/outputs
+                        while (this.inputs.length > keepCount) {
+                            this.removeInput(this.inputs.length - 1);
+                            this.removeOutput(this.outputs.length - 1);
+                        }
+                        
+                        // Ensure we always have at least one input
+                        if (this.inputs.length === 0) {
+                            this.addInput("input_1", "*");
+                            this.addOutput("*", "*");
                         }
 
                         if (this.computeSize) {

@@ -1,7 +1,7 @@
 from collections import deque
 import torch
 
-from ..utils.any_type import any_type
+from ..utils import any_type
 
 
 class CidAnyBuffer:

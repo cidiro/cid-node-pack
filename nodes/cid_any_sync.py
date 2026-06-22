@@ -1,4 +1,5 @@
-from ..utils.any_type import any_type
+from ..utils import any_type
+
 
 class CidAnySync:
     @classmethod
