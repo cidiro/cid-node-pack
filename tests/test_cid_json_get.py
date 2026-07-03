@@ -72,6 +72,14 @@ def test_gets_nested_array_value(node):
     assert result == ("second",)
 
 
+def test_numeric_segment_inside_dict_is_key(node):
+    payload = {"items": {"0": {"name": "zero"}}}
+
+    result = node.main(json.dumps(payload), "items/0/name")
+
+    assert result == ("zero",)
+
+
 def test_returns_nested_container_as_json(node):
     payload = {"items": [{"name": "first"}]}
 

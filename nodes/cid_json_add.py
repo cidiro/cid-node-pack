@@ -1,5 +1,6 @@
 import json
 from ast import literal_eval
+from ..utils.json_path import set_json_path_value
 from ..utils.json_utils import extract_json_from_string, format_json_error
 
 class CidJsonAdd:
@@ -51,6 +52,6 @@ class CidJsonAdd:
                 # If it still fails, treat it as a plain string
                 pass
         
-        data[key] = parsed_value
+        set_json_path_value(data, key, parsed_value)
 
         return (json.dumps(data, indent=4),) 

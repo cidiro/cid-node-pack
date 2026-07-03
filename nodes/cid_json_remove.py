@@ -1,4 +1,5 @@
 import json
+from ..utils.json_path import remove_json_path_value
 from ..utils.json_utils import extract_json_from_string, format_json_error
 
 class CidJsonRemove:
@@ -38,7 +39,6 @@ class CidJsonRemove:
         if not isinstance(data, dict):
             raise TypeError("The parsed JSON from 'json_str' is not an object (dictionary).")
 
-        if key in data:
-            del data[key]
+        remove_json_path_value(data, key)
 
         return (json.dumps(data, indent=4),)

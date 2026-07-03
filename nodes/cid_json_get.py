@@ -1,4 +1,5 @@
 import json
+from ..utils.json_path import get_json_path_value
 from ..utils.json_utils import extract_json_from_string, format_json_error
 
 class CidJsonGet:
@@ -20,51 +21,6 @@ class CidJsonGet:
     FUNCTION = "main"
     CATEGORY = "Cid Node Pack/JSON"
 
-    def _get_value(self, data, key):
-        if key in data:
-            return data[key]
-
-        segments = key.split("/")
-        if any(segment == "" for segment in segments):
-            raise ValueError(f"Input 'key' contains an empty path segment: '{key}'.")
-
-        current = data
-        traversed = []
-
-        for segment in segments:
-            path = "/".join(traversed + [segment])
-
-            if isinstance(current, dict):
-                if segment not in current:
-                    raise KeyError(
-                        f"The key path '{key}' could not be resolved at '{path}'. "
-                        f"Available keys: {list(current.keys())}"
-                    )
-                current = current[segment]
-            elif isinstance(current, list):
-                if not segment.isdigit():
-                    raise TypeError(
-                        f"The key path '{key}' expected a non-negative list index at '{path}', "
-                        f"but got '{segment}'."
-                    )
-
-                index = int(segment)
-                if index >= len(current):
-                    raise IndexError(
-                        f"The key path '{key}' has list index {index} out of range at '{path}'. "
-                        f"List length: {len(current)}"
-                    )
-                current = current[index]
-            else:
-                raise TypeError(
-                    f"The key path '{key}' could not continue at '{path}' because "
-                    f"'{('/'.join(traversed))}' is a {type(current).__name__}, not an object or list."
-                )
-
-            traversed.append(segment)
-
-        return current
-
     def main(self, json_str, key):
         if not json_str:
             raise ValueError("Input 'json_str' is empty. Please provide a valid JSON string.")
@@ -80,7 +36,7 @@ class CidJsonGet:
         if not isinstance(data, dict):
             raise TypeError("The parsed JSON from 'json_str' is not an object (dictionary).")
 
-        value = self._get_value(data, key)
+        value = get_json_path_value(data, key)
 
         if isinstance(value, (dict, list)):
             return (json.dumps(value),)
