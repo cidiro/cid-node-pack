@@ -118,6 +118,75 @@ def set_json_path_value(data, key, value):
         )
 
 
+def append_json_path_value(data, key, value):
+    if key in data:
+        if not isinstance(data[key], list):
+            raise TypeError(
+                f"The key '{key}' exists but is a {type(data[key]).__name__}, not a list."
+            )
+        data[key].append(value)
+        return
+
+    segments = split_json_path(key)
+    if len(segments) == 1:
+        data[key] = [value]
+        return
+
+    current = data
+    traversed = []
+
+    for index, segment in enumerate(segments[:-1]):
+        path = _path_label(traversed + [segment])
+        next_segment = segments[index + 1]
+
+        if isinstance(current, dict):
+            if segment not in current:
+                if next_segment.isdigit():
+                    raise TypeError(
+                        f"The key path '{key}' requires an existing list at '{path}'. "
+                        "Missing list parents are not created automatically."
+                    )
+                current[segment] = {}
+            current = current[segment]
+        elif isinstance(current, list):
+            item_index = _require_list_index(segment, key, path)
+            current = _get_list_item(current, item_index, key, path)
+        else:
+            parent_path = _path_label(traversed)
+            raise TypeError(
+                f"The key path '{key}' could not continue at '{path}' because "
+                f"'{parent_path}' is a {type(current).__name__}, not an object or list."
+            )
+
+        traversed.append(segment)
+
+    final_segment = segments[-1]
+    final_path = _path_label(traversed + [final_segment])
+
+    if isinstance(current, dict):
+        if final_segment not in current:
+            current[final_segment] = [value]
+            return
+        target = current[final_segment]
+    elif isinstance(current, list):
+        index = _require_list_index(final_segment, key, final_path)
+        target = _get_list_item(current, index, key, final_path)
+    else:
+        parent_path = _path_label(traversed)
+        raise TypeError(
+            f"The key path '{key}' could not append to '{final_path}' because "
+            f"'{parent_path}' is a {type(current).__name__}, not an object or list."
+        )
+
+    if not isinstance(target, list):
+        raise TypeError(
+            f"The key path '{key}' resolved to a {type(target).__name__} at "
+            f"'{final_path}', not a list."
+        )
+
+    target.append(value)
+
+
 def remove_json_path_value(data, key):
     if key in data:
         del data[key]
