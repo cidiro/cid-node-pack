@@ -1,3 +1,5 @@
+import base64
+import io
 import json
 import socket
 import time
@@ -24,6 +26,7 @@ class CidLLMChat:
     CATEGORY = "Cid Node Pack/LLM"
     HEALTH_ENDPOINT_CANDIDATES = ("v1/health", "health", "v1/models")
     MODEL_LOAD_ENDPOINT_CANDIDATES = ("models/load", "v1/models/load")
+    VISION_PROPS_ENDPOINT = "props"
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -43,6 +46,15 @@ class CidLLMChat:
                             "Accepts either an array of message objects "
                             '[{"role":"user","content":"..."}] or an object '
                             'with a "messages" array. The current user prompt is added as the last user message.'
+                        ),
+                    },
+                ),
+                "images": (
+                    "IMAGE",
+                    {
+                        "tooltip": (
+                            "Optional image(s) attached to the user prompt for vision-capable models. "
+                            "A batch attaches multiple images."
                         ),
                     },
                 ),
@@ -189,14 +201,42 @@ class CidLLMChat:
 
         return validated
 
-    def _build_messages(self, user_prompt, messages):
+    def _encode_images(self, images):
+        """Convert a ComfyUI IMAGE tensor batch into base64 PNG data URLs."""
+        if images is None:
+            return []
+
+        import numpy as np
+        from PIL import Image
+
+        data_urls = []
+        for image in images:
+            array = np.clip(255.0 * image.cpu().numpy(), 0, 255).astype(np.uint8)
+            pil_image = Image.fromarray(array)
+            buffer = io.BytesIO()
+            pil_image.save(buffer, format="PNG")
+            encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
+            data_urls.append(f"data:image/png;base64,{encoded}")
+
+        return data_urls
+
+    def _build_messages(self, user_prompt, messages, image_urls=None):
         user_prompt_value = (user_prompt or "").strip()
         if not user_prompt_value:
             raise ValueError("Input 'user_prompt' cannot be empty.")
 
         provided_messages = self._parse_messages(messages)
         history = list(provided_messages) if provided_messages is not None else []
-        history.append({"role": "user", "content": user_prompt_value})
+
+        if image_urls:
+            content = [{"type": "text", "text": user_prompt_value}]
+            content += [
+                {"type": "image_url", "image_url": {"url": url}} for url in image_urls
+            ]
+            history.append({"role": "user", "content": content})
+        else:
+            history.append({"role": "user", "content": user_prompt_value})
+
         return history
 
     def _request_json(self, method, url, payload=None):
@@ -324,6 +364,55 @@ class CidLLMChat:
                 f"Continuing; server may auto-load on first request. Last error: {last_error}"
             )
 
+    @staticmethod
+    def _extract_vision_flag(container):
+        """Read a vision-capability boolean from a modalities/capabilities object."""
+        if not isinstance(container, dict):
+            return None
+
+        modalities = container.get("modalities")
+        if isinstance(modalities, dict) and "vision" in modalities:
+            return bool(modalities["vision"])
+        if isinstance(modalities, list):
+            return "vision" in modalities
+
+        capabilities = container.get("capabilities")
+        if isinstance(capabilities, dict) and "vision" in capabilities:
+            return bool(capabilities["vision"])
+        if isinstance(capabilities, list):
+            return "vision" in capabilities
+
+        return None
+
+    def _check_vision_capability(self, base_url_value, model_name):
+        """Determine whether the loaded model supports image input.
+
+        Returns True (capable), False (positively not capable), or None (unknown).
+        Request failures are swallowed and reported as unknown so that older
+        servers which don't expose capability info don't block valid models.
+        """
+        props_url = urllib.parse.urljoin(f"{base_url_value}/", self.VISION_PROPS_ENDPOINT)
+        try:
+            props = self._request_json("GET", props_url)
+            flag = self._extract_vision_flag(props)
+            if flag is not None:
+                return flag
+        except Exception as exc:
+            print(f"[CidLLMChat] Warning: Could not read '{self.VISION_PROPS_ENDPOINT}' for vision capability: {exc}")
+
+        models_url = urllib.parse.urljoin(f"{base_url_value}/", "v1/models")
+        try:
+            response = self._request_json("GET", models_url)
+            for model in response.get("data", []):
+                if model.get("id") == model_name:
+                    flag = self._extract_vision_flag(model)
+                    if flag is not None:
+                        return flag
+        except Exception as exc:
+            print(f"[CidLLMChat] Warning: Could not read '/v1/models' for vision capability: {exc}")
+
+        return None
+
     def _extract_assistant_text(self, completion_json):
         choices = completion_json.get("choices")
         if not isinstance(choices, list) or not choices:
@@ -392,6 +481,7 @@ class CidLLMChat:
         user_prompt,
         model,
         messages="",
+        images=None,
         base_url="http://127.0.0.1:8080",
         temperature=0.7,
         top_p=0.95,
@@ -408,10 +498,21 @@ class CidLLMChat:
             raise ValueError("Input 'model' cannot be empty.")
 
         base_url_value = self._normalize_base_url(base_url)
-        request_messages = self._build_messages(user_prompt, messages)
 
         self._health_check(base_url_value)
         self._ensure_model_loaded(base_url_value, model_name)
+
+        image_urls = self._encode_images(images)
+        if image_urls:
+            print(f"[CidLLMChat] Attaching {len(image_urls)} image(s) to the user prompt.")
+            if self._check_vision_capability(base_url_value, model_name) is False:
+                raise ValueError(
+                    f"Model '{model_name}' is not vision-capable, but image input was provided. "
+                    "Load a multimodal model (with an mmproj vision projector) to describe or "
+                    "analyze images, or disconnect the 'images' input."
+                )
+
+        request_messages = self._build_messages(user_prompt, messages, image_urls)
 
         payload = {
             "model": model_name,
@@ -433,11 +534,20 @@ class CidLLMChat:
         completion_url = urllib.parse.urljoin(f"{base_url_value}/", "v1/chat/completions")
         print(f"[CidLLMChat] Generating response with model '{model_name}'...")
         generation_started_at = time.perf_counter()
-        completion_json = self._request_json(
-            "POST",
-            completion_url,
-            payload=payload,
-        )
+        try:
+            completion_json = self._request_json(
+                "POST",
+                completion_url,
+                payload=payload,
+            )
+        except RuntimeError as exc:
+            if image_urls:
+                raise RuntimeError(
+                    f"{exc} This request included image input; the server may have rejected it "
+                    f"because model '{model_name}' is not vision-capable or the server was started "
+                    "without a multimodal (mmproj) projector."
+                ) from exc
+            raise
         generation_elapsed_ms = (time.perf_counter() - generation_started_at) * 1000.0
 
         usage = completion_json.get("usage") if isinstance(completion_json, dict) else None
