@@ -21,7 +21,8 @@ class CidJsonLoad:
     FUNCTION = "main"
     CATEGORY = "Cid Node Pack/JSON"
 
-    def find_file(self, file_path):
+    @staticmethod
+    def find_file(file_path):
         if os.path.isabs(file_path) and os.path.exists(file_path):
             return file_path
 
@@ -36,6 +37,16 @@ class CidJsonLoad:
             return output_path
         
         return None
+
+    @classmethod
+    def IS_CHANGED(cls, file_path):
+        full_file_path = cls.find_file(file_path)
+
+        if not full_file_path:
+            return float("NaN")
+
+        stat = os.stat(full_file_path)
+        return (os.path.abspath(full_file_path), stat.st_mtime_ns, stat.st_size)
 
     def main(self, file_path):
         full_file_path = self.find_file(file_path)
