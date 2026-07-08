@@ -31,5 +31,10 @@ class CidJsonToYaml:
         except json.JSONDecodeError as e:
             raise ValueError(f"In 'json_str': {format_json_error(cleaned_json_str, e)}") from e
 
-        yaml_str = yaml.safe_dump(data, default_flow_style=False, sort_keys=False)
+        yaml_str = yaml.safe_dump(
+            data,
+            default_flow_style=False,
+            sort_keys=False,
+            width=2**31 - 1,
+        )
         return (yaml_str,)
