@@ -1,4 +1,5 @@
 import logging
+import os
 import random
 import re
 from collections import deque
@@ -16,7 +17,8 @@ logger.setLevel(logging.WARNING)
 # Constants
 # ---------------------------------------------------------------------------
 BASE_DIR: Path = Path(__file__).resolve().parent.parent  # <repo>/custom_nodes/cid-node-pack
-WILDCARDS_DIR: Path = BASE_DIR / "wildcards"
+DEFAULT_WILDCARDS_DIR: Path = BASE_DIR / "wildcards"
+WILDCARDS_ENV = "CID_WILDCARDS_DIR"  # overrides DEFAULT_WILDCARDS_DIR when set
 
 REFERENCE_PATTERN = re.compile(r"__([^_]+)__")    # e.g. __settings__, __path/to/thing__
 WILDCARD_PATTERN = re.compile(r"\{([^{}]+)\}")  # e.g. {foo|bar|baz}
@@ -30,6 +32,18 @@ VAR_DECL_RE = re.compile(r"^\$([a-zA-Z_][a-zA-Z0-9_-]*)\s*=\s*(.*)$", re.MULTILI
 VAR_REF_RE = re.compile(r"\$([a-zA-Z_][a-zA-Z0-9_-]*)")
 ESCAPED_DOLLAR_PLACEHOLDER = "\x00DOLLAR\x00"
 
+_warned_missing_dirs: set = set()
+
+
+def get_wildcards_dir() -> Path:
+    """Return the wildcards directory: $CID_WILDCARDS_DIR if set, else <pack>/wildcards."""
+    configured = os.environ.get(WILDCARDS_ENV, "").strip()
+    wildcards_dir = Path(configured).expanduser() if configured else DEFAULT_WILDCARDS_DIR
+    if configured and not wildcards_dir.is_dir() and wildcards_dir not in _warned_missing_dirs:
+        _warned_missing_dirs.add(wildcards_dir)
+        logger.warning("%s points to a missing directory: %s", WILDCARDS_ENV, wildcards_dir)
+    return wildcards_dir
+
 
 class CidWildcardProcessor:
     """ComfyUI node that expands wildcard references and inline option groups.
@@ -39,8 +53,9 @@ class CidWildcardProcessor:
     1. **Inline option groups** – `{red|green|blue}`
        * Add weights with `::` – `{red::3|blue}` → red has weight 3.
     2. **File / directory references** – `__reference__` or `__path/to/reference__`
-       * Looks for `wildcards/<reference>.txt` first.
-       * If not found, treats it as directory `wildcards/<reference>/` and recursively collects
+       * The wildcards directory is `$CID_WILDCARDS_DIR` if set, else `<pack>/wildcards`.
+       * Looks for `<wildcards>/<reference>.txt` first.
+       * If not found, treats it as directory `<wildcards>/<reference>/` and recursively collects
          all `.txt` files inside.
        * Each non-empty line becomes a candidate; weights via `::` are supported.
 
@@ -199,9 +214,10 @@ class CidWildcardProcessor:
         """Replace wildcard *reference* with a randomly-selected line from file(s)."""
         reference: str = match.group(1)
 
-        txt_candidate = WILDCARDS_DIR / f"{reference}{TXT_EXT}"
-        yaml_candidates = [WILDCARDS_DIR / f"{reference}{ext}" for ext in YAML_EXTS]
-        dir_candidate = WILDCARDS_DIR / reference
+        wildcards_dir = get_wildcards_dir()
+        txt_candidate = wildcards_dir / f"{reference}{TXT_EXT}"
+        yaml_candidates = [wildcards_dir / f"{reference}{ext}" for ext in YAML_EXTS]
+        dir_candidate = wildcards_dir / reference
 
         # 1) Single file – <reference>.txt
         if txt_candidate.is_file():

@@ -43,6 +43,17 @@ git clone <this-repository-url> cid-node-pack
 After restart, the nodes appear in ComfyUI with display names ending in
 `(Cid)`.
 
+## Wildcards
+
+`Wildcard Processor (Cid)` resolves `__name__` references from the directory in
+the `CID_WILDCARDS_DIR` environment variable. If the variable is unset, it uses
+the `wildcards/` folder inside this pack. Set the variable before starting
+ComfyUI:
+
+```bash
+export CID_WILDCARDS_DIR=/path/to/wildcards
+```
+
 ## Development
 
 Node registration lives in `__init__.py`. When adding a node, create the module
