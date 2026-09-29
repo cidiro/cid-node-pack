@@ -87,7 +87,7 @@ class CidWildcardProcessor:
         """Remove a trailing comment (starting at '#') from a single line.
 
         A hash ('#') is treated as a comment delimiter only if it is not escaped.
-        An escaped hash ('\#') is preserved as a literal '#', with the escape
+        An escaped hash ('\\#') is preserved as a literal '#', with the escape
         backslash removed in the output.
         """
         result_chars: List[str] = []
