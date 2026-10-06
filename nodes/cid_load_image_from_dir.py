@@ -188,9 +188,8 @@ class CidLoadImageFromDir:
         logger.info(f"Using index {index} to select image {image_index} of {num_images}")
         
         # Load the image
+        image_path = image_files[image_index]
         try:
-            image_path = image_files[image_index]
-            
             # Track this image path if history is enabled
             if remember_loaded_images:
                 if directory not in self.loaded_images:
@@ -211,6 +210,6 @@ class CidLoadImageFromDir:
             return (image_tensor, image_path)
             
         except Exception as e:
-            error_msg = f"Failed to load image at index {image_index}: {str(e)}"
+            error_msg = f"Failed to load image at index {image_index} (file '{os.path.abspath(image_path)}'): {str(e)}"
             logger.error(error_msg)
             raise Exception(error_msg)
