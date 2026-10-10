@@ -5,6 +5,7 @@ from .nodes.cid_extract_video_metadata import CidExtractVideoMetadata
 from .nodes.cid_extract_audio_metadata import CidExtractAudioMetadata
 from .nodes.cid_wildcard_processor import CidWildcardProcessor
 from .nodes.cid_load_image_from_dir import CidLoadImageFromDir
+from .nodes.cid_load_image_from_path import CidLoadImageFromPath
 from .nodes.cid_any_sync import CidAnySync
 from .nodes.cid_any_buffer import CidAnyBuffer
 from .nodes.cid_any_queue import CidAnyQueue
@@ -51,6 +52,7 @@ NODE_CLASS_MAPPINGS = {
     "CidExtractMetadata": CidExtractMetadata,
     "CidWildcardProcessor": CidWildcardProcessor,
     "CidLoadImageFromDir": CidLoadImageFromDir,
+    "CidLoadImageFromPath": CidLoadImageFromPath,
     "CidAnySync": CidAnySync,
     "CidAnyBuffer": CidAnyBuffer,
     "CidAnyQueue": CidAnyQueue,
@@ -99,6 +101,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "CidExtractAudioMetadata": "Extract Audio Metadata (Cid)",
     "CidWildcardProcessor": "Wildcard Processor (Cid)",
     "CidLoadImageFromDir": "Load Image From Directory (Cid)",
+    "CidLoadImageFromPath": "Load Image From Path (Cid)",
     "CidAnySync": "Any Sync (Cid)",
     "CidAnyBuffer": "Any Buffer (Cid)",
     "CidAnyQueue": "Any Queue (Cid)",
