@@ -21,6 +21,7 @@ from .nodes.cid_set_global_variable import CidSetGlobalVariable
 from .nodes.cid_boolean_multiplexer import CidBooleanMultiplexer
 from .nodes.cid_boolean_demultiplexer import CidBooleanDemultiplexer
 from .nodes.cid_json_get import CidJsonGet
+from .nodes.cid_array_length import CidArrayLength
 from .nodes.cid_json_add import CidJsonAdd
 from .nodes.cid_json_append import CidJsonAppend
 from .nodes.cid_json_remove import CidJsonRemove
@@ -68,6 +69,7 @@ NODE_CLASS_MAPPINGS = {
     "CidBooleanMultiplexer": CidBooleanMultiplexer,
     "CidBooleanDemultiplexer": CidBooleanDemultiplexer,
     "CidJsonGet": CidJsonGet,
+    "CidArrayLength": CidArrayLength,
     "CidJsonRemove": CidJsonRemove,
     "CidJsonAdd": CidJsonAdd,
     "CidJsonAppend": CidJsonAppend,
@@ -117,6 +119,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "CidBooleanMultiplexer": "Boolean Multiplexer (Cid)",
     "CidBooleanDemultiplexer": "Boolean Demultiplexer (Cid)",
     "CidJsonGet": "JSON Get (Cid)",
+    "CidArrayLength": "Array Length (Cid)",
     "CidJsonAdd": "JSON Add (Cid)",
     "CidJsonAppend": "JSON Append (Cid)",
     "CidJsonRemove": "JSON Remove (Cid)",
