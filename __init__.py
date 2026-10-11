@@ -10,6 +10,7 @@ from .nodes.cid_any_sync import CidAnySync
 from .nodes.cid_any_buffer import CidAnyBuffer
 from .nodes.cid_any_queue import CidAnyQueue
 from .nodes.cid_concatenate_strings import CidConcatenateStrings
+from .nodes.cid_any_to_string import CidAnyToString
 from .nodes.cid_any_list import CidAnyList
 from .nodes.cid_store_any import CidStoreAny
 from .nodes.cid_reload_image import CidReloadImage
@@ -58,6 +59,7 @@ NODE_CLASS_MAPPINGS = {
     "CidAnyBuffer": CidAnyBuffer,
     "CidAnyQueue": CidAnyQueue,
     "CidConcatenateStrings": CidConcatenateStrings,
+    "CidAnyToString": CidAnyToString,
     "CidAnyList": CidAnyList,
     "CidStoreAny": CidStoreAny,
     "CidReloadImage": CidReloadImage,
@@ -108,6 +110,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "CidAnyBuffer": "Any Buffer (Cid)",
     "CidAnyQueue": "Any Queue (Cid)",
     "CidConcatenateStrings": "Concatenate Strings (Cid)",
+    "CidAnyToString": "Any to String (Cid)",
     "CidAnyList": "Any List (Cid)",
     "CidStoreAny": "Store Any (Cid)",
     "CidReloadImage": "Reload Image (Cid)",
