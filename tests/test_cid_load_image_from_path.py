@@ -3,6 +3,8 @@ import os
 from pathlib import Path
 
 import pytest
+
+pytest.importorskip("torch", reason="torch is only available in the ComfyUI environment")
 import torch
 from PIL import Image
 
