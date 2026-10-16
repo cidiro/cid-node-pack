@@ -1,6 +1,6 @@
 import json
 from ..utils.json_path import remove_json_path_value
-from ..utils.json_utils import parse_json_data
+from ..utils.json_utils import extract_json_from_string, format_json_error
 
 class CidJsonRemove:
     """
@@ -28,9 +28,13 @@ class CidJsonRemove:
         if not json_str:
             return ("{}",)
 
-        # Parse the input, tolerating common LLM formatting issues
-        # (markdown fences, prose around the JSON, unescaped newlines, ...).
-        data = parse_json_data(json_str, input_name="json_str")
+        # Attempt to clean up common LLM markdown formatting if present
+        cleaned_json_str = extract_json_from_string(json_str)
+
+        try:
+            data = json.loads(cleaned_json_str)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"In 'json_str': {format_json_error(cleaned_json_str, e)}") from e
 
         if not isinstance(data, dict):
             raise TypeError("The parsed JSON from 'json_str' is not an object (dictionary).")

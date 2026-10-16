@@ -1,7 +1,7 @@
 import json
 import os
 import folder_paths
-from ..utils.json_utils import parse_json_data
+from ..utils.json_utils import extract_json_from_string, format_json_error
 
 class CidJsonLoad:
     """
@@ -57,11 +57,14 @@ class CidJsonLoad:
         try:
             with open(full_file_path, 'r', encoding='utf-8') as f:
                 json_content = f.read()
+
+                # Attempt to clean up common LLM markdown formatting if present
+                cleaned_json_content = extract_json_from_string(json_content)
+
+                json_data = json.loads(cleaned_json_content)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON in file '{full_file_path}': {format_json_error(cleaned_json_content, e)}") from e
         except Exception as e:
             raise RuntimeError(f"An error occurred while reading file '{full_file_path}': {e}") from e
-
-        # Parse the file, tolerating common LLM formatting issues
-        # (markdown fences, prose around the JSON, unescaped newlines, ...).
-        json_data = parse_json_data(json_content, input_name=full_file_path)
 
         return (json.dumps(json_data, indent=4),) 

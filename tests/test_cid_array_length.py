@@ -75,11 +75,7 @@ def test_empty_input_raises(node):
 
 def test_invalid_json_raises(node):
     with pytest.raises(ValueError, match="json_str"):
-        node.main("[Shot 1]) is fully referenced.")
-
-
-def test_truncated_array_is_repaired(node):
-    assert node.main("[1, 2,") == (2,)
+        node.main("[1, 2,")
 
 
 def test_non_array_raises(node):

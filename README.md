@@ -43,19 +43,6 @@ git clone <this-repository-url> cid-node-pack
 After restart, the nodes appear in ComfyUI with display names ending in
 `(Cid)`.
 
-## Tolerant JSON Parsing
-
-The JSON nodes recover slightly malformed input instead of failing the
-workflow. Parsing goes through several layers: markdown fences and
-surrounding prose are stripped, common LLM mistakes are repaired (unescaped
-newlines or tabs inside string values, single or smart quotes, trailing
-commas, Python `True`/`False`/`None`, stray or missing brackets), and the
-input is finally tried as YAML. Brackets and quotes inside string values are
-protected content and never counted as structure. `JSON Add (Cid)` and
-`JSON Append (Cid)` go one step further: when the base object still cannot
-be recovered (for example an LLM reply that is plain prose), they log a
-warning and continue with an empty object.
-
 ## Wildcards
 
 `Wildcard Processor (Cid)` resolves `__name__` references from the directory in
