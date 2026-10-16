@@ -18,8 +18,9 @@ local LLM prompt/chat helpers.
   queues, lists, synchronization, and storage nodes.
 - Control helpers: boolean multiplexers/demultiplexers, trigger timing nodes,
   and type assertions.
-- Prompt and LLM helpers: wildcard processing, system prompt handling, chat,
-  and unload controls.
+- Prompt and LLM helpers: wildcard processing, system prompt handling, chat
+  (with optional schema-constrained JSON output via `response_format`), and
+  unload controls.
 
 ## Project Layout
 

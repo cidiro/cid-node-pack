@@ -7,10 +7,13 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+from ..utils.json_utils import extract_json_from_string
+
 
 class CidLLMChat:
     """
     Chat with an OpenAI-compatible LLM server (e.g. llama.cpp llama-server).
+    Optionally constrains the response to a JSON Schema (structured output).
     """
 
     ALLOWED_ROLES = {"system", "developer", "user", "assistant", "tool"}
@@ -55,6 +58,19 @@ class CidLLMChat:
                         "tooltip": (
                             "Optional image(s) attached to the user prompt for vision-capable models. "
                             "A batch attaches multiple images."
+                        ),
+                    },
+                ),
+                "json_schema": (
+                    "STRING",
+                    {
+                        "default": "",
+                        "multiline": True,
+                        "tooltip": (
+                            "Optional JSON Schema object constraining the response to structured JSON "
+                            '(sent as response_format, e.g. {"type": "object", "properties": ...}). '
+                            "Supported by llama.cpp llama-server, vLLM, LM Studio, and OpenAI. "
+                            "Leave empty for unconstrained text output."
                         ),
                     },
                 ),
@@ -476,12 +492,122 @@ class CidLLMChat:
         updated_messages.append(assistant_message)
         return updated_messages
 
+    JSON_SCHEMA_TYPE_CHECKS = {
+        "object": lambda value: isinstance(value, dict),
+        "array": lambda value: isinstance(value, list),
+        "string": lambda value: isinstance(value, str),
+        "number": lambda value: isinstance(value, (int, float)) and not isinstance(value, bool),
+        "integer": lambda value: isinstance(value, int) and not isinstance(value, bool),
+        "boolean": lambda value: isinstance(value, bool),
+        "null": lambda value: value is None,
+    }
+
+    def _parse_json_schema(self, json_schema):
+        """Parse the optional json_schema input into a schema object.
+
+        Returns None when the input is empty. Tolerates markdown fences around
+        the schema (common when pasting from documentation).
+        """
+        raw = extract_json_from_string(json_schema or "")
+        if not raw.strip():
+            return None
+
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                f"Invalid JSON in 'json_schema': {exc}. Provide a JSON Schema object "
+                '(a JSON object describing the expected response, e.g. a schema with "type": "object"), '
+                "or leave it empty."
+            ) from exc
+
+        if not isinstance(parsed, dict):
+            raise ValueError("Input 'json_schema' must be a JSON Schema object (a JSON object at the top level).")
+
+        return parsed
+
+    def _build_payload(
+        self,
+        model_name,
+        request_messages,
+        parsed_schema,
+        temperature,
+        top_p,
+        top_k,
+        min_p,
+        presence_penalty,
+        repeat_penalty,
+        repeat_last_n,
+        dry_multiplier,
+        max_completion_tokens,
+    ):
+        payload = {
+            "model": model_name,
+            "messages": request_messages,
+            "stream": False,
+            "temperature": float(temperature),
+            "top_p": float(top_p),
+            "top_k": int(top_k),
+            "min_p": float(min_p),
+            "presence_penalty": float(presence_penalty),
+            "repeat_penalty": float(repeat_penalty),
+            "repeat_last_n": int(repeat_last_n),
+            "dry_multiplier": float(dry_multiplier),
+        }
+        max_completion_tokens_value = int(max_completion_tokens)
+        if max_completion_tokens_value > 0:
+            payload["max_completion_tokens"] = max_completion_tokens_value
+
+        if parsed_schema is not None:
+            payload["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "response",
+                    "strict": True,
+                    "schema": parsed_schema,
+                },
+            }
+
+        return payload
+
+    def _validate_structured_response(self, assistant_text, parsed_schema):
+        """Best-effort check that a schema-constrained response is usable JSON.
+
+        Servers that honor response_format guarantee conformance; this catches
+        servers that silently ignore it, so downstream JSON nodes don't fail
+        with a confusing parse error.
+        """
+        cleaned = extract_json_from_string(assistant_text or "")
+        try:
+            parsed = json.loads(cleaned)
+        except json.JSONDecodeError as exc:
+            raise RuntimeError(
+                "A json_schema was requested, but the server returned a response that is not valid JSON "
+                f"(parse error: {exc}). The server may not support schema-constrained output "
+                "(response_format with type 'json_schema')."
+            ) from exc
+
+        declared_type = parsed_schema.get("type")
+        if isinstance(declared_type, str):
+            declared_type = [declared_type]
+        if not isinstance(declared_type, list):
+            return
+
+        checks = [self.JSON_SCHEMA_TYPE_CHECKS[name] for name in declared_type if name in self.JSON_SCHEMA_TYPE_CHECKS]
+        if checks and not any(check(parsed) for check in checks):
+            raise RuntimeError(
+                "A json_schema was requested, but the response's top-level JSON type does not match "
+                f"the schema type '{parsed_schema.get('type')}'. The server may not support "
+                "schema-constrained output (response_format with type 'json_schema')."
+            )
+
     def main(
         self,
         user_prompt,
         model,
         messages="",
         images=None,
+        json_schema="",
         base_url="http://127.0.0.1:8080",
         temperature=0.7,
         top_p=0.95,
@@ -514,22 +640,24 @@ class CidLLMChat:
 
         request_messages = self._build_messages(user_prompt, messages, image_urls)
 
-        payload = {
-            "model": model_name,
-            "messages": request_messages,
-            "stream": False,
-            "temperature": float(temperature),
-            "top_p": float(top_p),
-            "top_k": int(top_k),
-            "min_p": float(min_p),
-            "presence_penalty": float(presence_penalty),
-            "repeat_penalty": float(repeat_penalty),
-            "repeat_last_n": int(repeat_last_n),
-            "dry_multiplier": float(dry_multiplier),
-        }
-        max_completion_tokens_value = int(max_completion_tokens)
-        if max_completion_tokens_value > 0:
-            payload["max_completion_tokens"] = max_completion_tokens_value
+        parsed_schema = self._parse_json_schema(json_schema)
+        if parsed_schema is not None:
+            print("[CidLLMChat] Structured output enabled: constraining the response with the provided json_schema.")
+
+        payload = self._build_payload(
+            model_name=model_name,
+            request_messages=request_messages,
+            parsed_schema=parsed_schema,
+            temperature=temperature,
+            top_p=top_p,
+            top_k=top_k,
+            min_p=min_p,
+            presence_penalty=presence_penalty,
+            repeat_penalty=repeat_penalty,
+            repeat_last_n=repeat_last_n,
+            dry_multiplier=dry_multiplier,
+            max_completion_tokens=max_completion_tokens,
+        )
 
         completion_url = urllib.parse.urljoin(f"{base_url_value}/", "v1/chat/completions")
         print(f"[CidLLMChat] Generating response with model '{model_name}'...")
@@ -563,6 +691,8 @@ class CidLLMChat:
             print(f"[CidLLMChat] Response generated in {generation_elapsed_ms:.1f} ms.")
 
         assistant_text = self._extract_assistant_text(completion_json)
+        if parsed_schema is not None:
+            self._validate_structured_response(assistant_text, parsed_schema)
         updated_messages = self._build_updated_messages(request_messages, completion_json, assistant_text)
 
         return (
