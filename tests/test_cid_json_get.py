@@ -111,3 +111,30 @@ def test_top_level_slash_key_wins_over_path(node):
     result = node.main(json.dumps(payload), "key_a/key_b")
 
     assert result == ("literal",)
+
+
+def test_markdown_fenced_json_is_extracted(node):
+    fenced = '```json\n{"name": "cid"}\n```'
+
+    result = node.main(fenced, "name")
+
+    assert result == ("cid",)
+
+
+def test_broken_json_with_unescaped_newline_is_repaired(node):
+    broken = '{"desc": "line1\nline2"}'
+
+    result = node.main(broken, "desc")
+
+    assert result == ("line1\nline2",)
+
+
+def test_plain_prose_still_raises_value_error(node):
+    prose = (
+        "[Shot 1]) is fully referenced.\n"
+        "\n"
+        "integrated_multimodal_description: [Shot 1]"
+    )
+
+    with pytest.raises(ValueError, match="Invalid JSON"):
+        node.main(prose, "key")

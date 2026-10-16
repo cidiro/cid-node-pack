@@ -87,3 +87,45 @@ def test_top_level_slash_key_wins_over_path(node):
 def test_missing_list_parent_raises(node):
     with pytest.raises(TypeError, match="requires an existing list"):
         node.main("items/0/name", '"updated"', "{}")
+
+
+def test_unparseable_prose_falls_back_to_empty_object(node, capsys):
+    # Regression test for the reported crash: plain LLM prose containing
+    # brackets must not fail the prompt; the node warns and starts fresh.
+    prose = (
+        "[Shot 1]) is fully referenced.\n"
+        "\n"
+        "integrated_multimodal_description: [Shot 1]"
+    )
+
+    result = node.main("key", '"value"', prose)
+
+    assert json.loads(result[0]) == {"key": "value"}
+    assert "Continuing with an empty object" in capsys.readouterr().out
+
+
+def test_base_with_unescaped_newline_in_value_is_repaired(node):
+    broken = '{"desc": "line1\nline2"}'
+
+    result = node.main("key", '"value"', broken)
+
+    assert json.loads(result[0]) == {"desc": "line1\nline2", "key": "value"}
+
+
+def test_base_with_prose_around_json_is_extracted(node):
+    wrapped = 'Sure! Here it is:\n```json\n{"a": 1}\n```\nHope that helps!'
+
+    result = node.main("key", '"value"', wrapped)
+
+    assert json.loads(result[0]) == {"a": 1, "key": "value"}
+
+
+def test_yaml_style_base_is_accepted(node):
+    result = node.main("key", '"value"', "desc: hello")
+
+    assert json.loads(result[0]) == {"desc": "hello", "key": "value"}
+
+
+def test_array_base_still_raises_type_error(node):
+    with pytest.raises(TypeError, match="not an object"):
+        node.main("key", '"value"', "[1, 2]")

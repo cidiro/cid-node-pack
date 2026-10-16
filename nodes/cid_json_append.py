@@ -1,7 +1,7 @@
 import json
 from ast import literal_eval
 from ..utils.json_path import append_json_path_value
-from ..utils.json_utils import extract_json_from_string, format_json_error
+from ..utils.json_utils import parse_json_data
 
 class CidJsonAppend:
     """
@@ -29,13 +29,17 @@ class CidJsonAppend:
         if not key:
             raise ValueError("Input 'key' is empty. Please provide a key to append to.")
 
-        # Attempt to clean up common LLM markdown formatting if present
-        cleaned_json_str = extract_json_from_string(json_str) if json_str else "{}"
-
+        # Parse the base object, tolerating common LLM formatting issues
+        # (markdown fences, prose around the JSON, unescaped newlines, ...).
         try:
-            data = json.loads(cleaned_json_str)
-        except json.JSONDecodeError as e:
-            raise ValueError(f"In 'json_str': {format_json_error(cleaned_json_str, e)}") from e
+            data = parse_json_data(json_str or "{}", input_name="json_str")
+        except ValueError as e:
+            # The input could not be recovered as JSON (for example an LLM
+            # reply that is plain prose). Keep the workflow running by
+            # starting from an empty object instead of failing the prompt.
+            reason = str(e).splitlines()[0]
+            print(f"[CidJsonAppend] Warning: {reason}. Continuing with an empty object.")
+            data = {}
 
         if not isinstance(data, dict):
             raise TypeError("The parsed JSON from 'json_str' is not an object (dictionary).")

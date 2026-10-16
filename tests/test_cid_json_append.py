@@ -122,3 +122,24 @@ def test_nested_non_list_target_raises(node):
 def test_missing_list_parent_raises(node):
     with pytest.raises(TypeError, match="requires an existing list"):
         node.main("items/0/tags", '"new"', "{}")
+
+
+def test_unparseable_prose_falls_back_to_empty_object(node, capsys):
+    prose = (
+        "[Shot 1]) is fully referenced.\n"
+        "\n"
+        "integrated_multimodal_description: [Shot 1]"
+    )
+
+    result = node.main("items", '"value"', prose)
+
+    assert json.loads(result[0]) == {"items": ["value"]}
+    assert "Continuing with an empty object" in capsys.readouterr().out
+
+
+def test_base_with_unescaped_newline_in_value_is_repaired(node):
+    broken = '{"items": ["a"], "desc": "line1\nline2"}'
+
+    result = node.main("items", '"b"', broken)
+
+    assert json.loads(result[0]) == {"items": ["a", "b"], "desc": "line1\nline2"}
