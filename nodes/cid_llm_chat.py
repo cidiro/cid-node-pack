@@ -35,7 +35,17 @@ class CidLLMChat:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "user_prompt": ("STRING", {"multiline": True, "default": ""}),
+                "user_prompt": (
+                    "STRING",
+                    {
+                        "default": "",
+                        "forceInput": True,
+                        "tooltip": (
+                            "User prompt text, sent as the last user message. "
+                            "Wire from a text-producing node (e.g. a wildcard processor or JSON get node)."
+                        ),
+                    },
+                ),
                 "model": ("STRING", {"default": "local-model"}),
             },
             "optional": {
@@ -65,12 +75,12 @@ class CidLLMChat:
                     "STRING",
                     {
                         "default": "",
-                        "multiline": True,
+                        "forceInput": True,
                         "tooltip": (
                             "Optional JSON Schema object constraining the response to structured JSON "
                             '(sent as response_format, e.g. {"type": "object", "properties": ...}). '
                             "Supported by llama.cpp llama-server, vLLM, LM Studio, and OpenAI. "
-                            "Leave empty for unconstrained text output."
+                            "Leave unconnected for unconstrained text output."
                         ),
                     },
                 ),

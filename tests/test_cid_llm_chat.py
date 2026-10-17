@@ -47,6 +47,21 @@ def llm_chat(llm_chat_class):
 SIMPLE_SCHEMA = {"type": "object", "properties": {"answer": {"type": "string"}}}
 
 
+class TestInputTypes:
+    def test_user_prompt_is_a_required_input_slot(self, llm_chat_class):
+        inputs = llm_chat_class.INPUT_TYPES()
+        config = inputs["required"]["user_prompt"][1]
+        assert inputs["required"]["user_prompt"][0] == "STRING"
+        assert config["forceInput"] is True
+
+    def test_json_schema_is_an_optional_input_slot(self, llm_chat_class):
+        inputs = llm_chat_class.INPUT_TYPES()
+        assert "json_schema" not in inputs["required"]
+        config = inputs["optional"]["json_schema"][1]
+        assert inputs["optional"]["json_schema"][0] == "STRING"
+        assert config["forceInput"] is True
+
+
 class TestParseJsonSchema:
     def test_empty_input_returns_none(self, llm_chat):
         assert llm_chat._parse_json_schema("") is None
