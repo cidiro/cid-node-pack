@@ -47,6 +47,8 @@ from .nodes.cid_llm_system_prompt import CidLLMSystemPrompt
 from .nodes.cid_llm_unload import CidLLMUnload
 from .nodes.cid_trigger_every_n import CidTriggerEveryN
 from .nodes.cid_trigger_duty_cycle import CidTriggerDutyCycle
+from .nodes.cid_timer_start import CidTimerStart
+from .nodes.cid_timer_stop import CidTimerStop
 from .nodes.cid_assert_type import CidAssertType
 
 WEB_DIRECTORY = "./js"
@@ -98,6 +100,8 @@ NODE_CLASS_MAPPINGS = {
     "CidLLMUnload": CidLLMUnload,
     "CidTriggerEveryN": CidTriggerEveryN,
     "CidTriggerDutyCycle": CidTriggerDutyCycle,
+    "CidTimerStart": CidTimerStart,
+    "CidTimerStop": CidTimerStop,
     "CidAssertType": CidAssertType,
 }
 
@@ -151,6 +155,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "CidLLMUnload": "LLM Unload (Cid)",
     "CidTriggerEveryN": "Trigger Every N (Cid)",
     "CidTriggerDutyCycle": "Trigger Duty Cycle (Cid)",
+    "CidTimerStart": "Timer Start (Cid)",
+    "CidTimerStop": "Timer Stop (Cid)",
     "CidAssertType": "Assert Type (Cid)",
 }
 

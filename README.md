@@ -15,7 +15,7 @@ local LLM prompt/chat helpers.
 - Text and data utilities: concatenate strings, check string contents, manage
   string lists, join paths, and read/write JSON or YAML.
 - Workflow state helpers: counters, global variables, any-value buffers,
-  queues, lists, synchronization, and storage nodes.
+  queues, lists, synchronization, timers, and storage nodes.
 - Control helpers: boolean multiplexers/demultiplexers, trigger timing nodes,
   and type assertions.
 - Prompt and LLM helpers: wildcard processing, system prompt handling, chat
@@ -54,6 +54,28 @@ ComfyUI:
 ```bash
 export CID_WILDCARDS_DIR=/path/to/wildcards
 ```
+
+## Timers
+
+`Timer Start (Cid)` and `Timer Stop (Cid)` measure the wall-clock time that
+elapses between two points in a workflow. Give both nodes the same
+`timer_name`, splice `Timer Start` into the data path at point A and
+`Timer Stop` at point B (both pass their input through unchanged). `Timer
+Stop` returns the elapsed seconds as `FLOAT` and a formatted `STRING`,
+prints the measurement to the ComfyUI console, and shows it on the node as
+a digital clock: ghost segments before the first run, a live count-up while
+the queue executes, and the frozen result afterwards. The precise value can
+be copied from the console log.
+
+Notes:
+
+- The measurement is the wall-clock time between the two nodes' executions;
+  it includes everything that runs in between, not only GPU compute.
+- If the nodes between the pair are cache-hit on a re-queue, the elapsed
+time is correctly near zero.
+- Several `Timer Stop` nodes can read the same `Timer Start` (split timing).
+- Reusing a `timer_name` across different open workflows in the same
+  ComfyUI session shares state; use distinct names per workflow.
 
 ## Development
 
