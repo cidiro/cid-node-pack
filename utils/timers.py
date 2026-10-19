@@ -26,7 +26,7 @@ def stop_timer(name):
     except KeyError:
         raise ValueError(
             f"CidTimerStop: no start timestamp for timer '{name}'. "
-            "Connect a CidTimerStart node with the same 'timer_name' "
+            "Connect a CidTimerStart node with the same 'id' "
             "upstream, and make sure it executes before this node."
         ) from None
     return time.perf_counter() - started

@@ -337,7 +337,7 @@ function ensureState(node) {
 }
 
 function timerNameOf(node) {
-  const w = node.widgets?.find((widget) => widget.name === "timer_name");
+  const w = node.widgets?.find((widget) => widget.name === "id");
   const value = (w?.value ?? "default").toString().trim();
   return value || "default";
 }
@@ -438,7 +438,7 @@ app.registerExtension({
       origOnConnChange?.call(this, type, index, connected, link_info);
       if (type !== 1) return;
       const input = this.inputs?.[index];
-      if (!input || input.name !== "input") return;
+      if (!input || input.name !== "passthrough") return;
       let newType = "*";
       if (connected && link_info) {
         const originNode = app.graph.getNodeById(link_info.origin_id);

@@ -1,19 +1,16 @@
-import logging
 
 from ..utils import any_type
 from ..utils import duration
 from ..utils import timers
 
-logger = logging.getLogger("cid_node_pack")
 
 class CidTimerStop:
     """Mark point B of a measured interval and report the elapsed time.
 
-    Reads the start stamp recorded by a CidTimerStart with the same
-    ``timer_name`` and returns the elapsed seconds as a FLOAT and a formatted
-    STRING, while passing its optional input through unchanged. The elapsed
-    time is also printed to the ComfyUI console and drawn as a retro digital
-    clock on the node itself.
+    Reads the start stamp recorded by a CidTimerStart with the same ``id``
+    and passes its optional input through unchanged. The elapsed time is
+    drawn as a retro digital clock on the node itself and printed to the
+    ComfyUI console (copyable, with raw seconds).
 
     The start stamp is kept after reading, so several stops can measure
     against one start (split timing).
@@ -23,24 +20,24 @@ class CidTimerStop:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "timer_name": (
+                "id": (
                     "STRING",
                     {
                         "default": "default",
-                        "tooltip": "Name of the CidTimerStart to measure from",
+                        "tooltip": "Id of the CidTimerStart to measure from",
                     },
                 ),
             },
             "optional": {
-                "input": (
+                "passthrough": (
                     any_type,
                     {"forceInput": True, "tooltip": "Value to pass through unchanged"},
                 ),
             },
         }
 
-    RETURN_TYPES = (any_type, "FLOAT", "STRING")
-    RETURN_NAMES = ("output", "seconds", "text")
+    RETURN_TYPES = (any_type,)
+    RETURN_NAMES = ("passthrough",)
     FUNCTION = "main"
     OUTPUT_NODE = True
     CATEGORY = "Cid Node Pack/Util"
@@ -50,15 +47,15 @@ class CidTimerStop:
         # Always re-measure on every queue run, even when inputs are unchanged
         return float("NaN")
 
-    def main(self, timer_name, input=None):
-        if not timer_name:
-            raise ValueError("CidTimerStop: 'timer_name' cannot be empty")
-        elapsed = timers.stop_timer(timer_name)
+    def main(self, id, passthrough=None):
+        if not id:
+            raise ValueError("CidTimerStop: 'id' cannot be empty")
+        elapsed = timers.stop_timer(id)
         text = duration.format_duration(elapsed)
         # print() rather than logging: ComfyUI filters INFO records from
         # custom-node loggers, and the console line is meant to be copyable
-        print(f"CidTimerStop [{timer_name}] {text} ({elapsed:.4f} s)", flush=True)
+        print(f"CidTimerStop [{id}] {text} ({elapsed:.4f} s)", flush=True)
         return {
             "ui": {"text": [text], "elapsed": [elapsed]},
-            "result": (input, elapsed, text),
+            "result": (passthrough,),
         }

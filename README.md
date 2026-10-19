@@ -58,14 +58,13 @@ export CID_WILDCARDS_DIR=/path/to/wildcards
 ## Timers
 
 `Timer Start (Cid)` and `Timer Stop (Cid)` measure the wall-clock time that
-elapses between two points in a workflow. Give both nodes the same
-`timer_name`, splice `Timer Start` into the data path at point A and
-`Timer Stop` at point B (both pass their input through unchanged). `Timer
-Stop` returns the elapsed seconds as `FLOAT` and a formatted `STRING`,
-prints the measurement to the ComfyUI console, and shows it on the node as
-a digital clock: ghost segments before the first run, a live count-up while
-the queue executes, and the frozen result afterwards. The precise value can
-be copied from the console log.
+elapses between two points in a workflow. Give both nodes the same `id`,
+splice `Timer Start` into the data path at point A and `Timer Stop` at
+point B (both pass their `passthrough` input through unchanged). `Timer
+Stop` shows the elapsed time on the node as a digital clock — ghost
+segments before the first run, a live count-up while the queue executes,
+and the frozen result afterwards — and prints the precise, copyable value
+to the ComfyUI console.
 
 Notes:
 
@@ -74,8 +73,8 @@ Notes:
 - If the nodes between the pair are cache-hit on a re-queue, the elapsed
 time is correctly near zero.
 - Several `Timer Stop` nodes can read the same `Timer Start` (split timing).
-- Reusing a `timer_name` across different open workflows in the same
-  ComfyUI session shares state; use distinct names per workflow.
+- Reusing an `id` across different open workflows in the same ComfyUI
+  session shares state; use distinct ids per workflow.
 
 ## Development
 

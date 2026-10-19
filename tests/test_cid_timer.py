@@ -143,8 +143,8 @@ def test_start_stamps_and_announces(clock):
     assert timers.stop_timer("t1") == pytest.approx(1.25)
 
 
-def test_start_rejects_empty_name():
-    with pytest.raises(ValueError, match="timer_name"):
+def test_start_rejects_empty_id():
+    with pytest.raises(ValueError, match="'id' cannot be empty"):
         CidTimerStart().main("")
 
 
@@ -154,9 +154,11 @@ def test_start_is_changed_always_fires():
 
 def test_start_metadata():
     inputs = CidTimerStart.INPUT_TYPES()
-    assert list(inputs["required"].keys()) == ["timer_name"]
-    assert inputs["required"]["timer_name"][0] == "STRING"
-    assert inputs["optional"]["input"][1]["forceInput"] is True
+    assert list(inputs["required"].keys()) == ["id"]
+    assert inputs["required"]["id"][0] == "STRING"
+    assert inputs["optional"]["passthrough"][1]["forceInput"] is True
+    assert CidTimerStart.RETURN_TYPES == (CidTimerStart.INPUT_TYPES()["optional"]["passthrough"][0],)
+    assert CidTimerStart.RETURN_NAMES == ("passthrough",)
     assert CidTimerStart.OUTPUT_NODE is True
 
 
@@ -170,10 +172,9 @@ def test_stop_measures_elapsed(clock):
     timers.start_timer("default")
     clock.advance(12.34)
     ret = CidTimerStop().main("default", sentinel)
-    out, seconds, text = ret["result"]
+    out = ret["result"][0]
     assert out is sentinel
-    assert seconds == pytest.approx(12.34)
-    assert text == "12.34 s"
+    assert len(ret["result"]) == 1
 
 
 def test_stop_ui_payload(clock):
@@ -198,8 +199,8 @@ def test_stop_without_start_raises():
         CidTimerStop().main("never-started")
 
 
-def test_stop_rejects_empty_name():
-    with pytest.raises(ValueError, match="timer_name"):
+def test_stop_rejects_empty_id():
+    with pytest.raises(ValueError, match="'id' cannot be empty"):
         CidTimerStop().main("")
 
 
@@ -209,10 +210,10 @@ def test_stop_is_changed_always_fires():
 
 def test_stop_metadata():
     inputs = CidTimerStop.INPUT_TYPES()
-    assert list(inputs["required"].keys()) == ["timer_name"]
-    assert inputs["optional"]["input"][1]["forceInput"] is True
-    assert CidTimerStop.RETURN_TYPES == (CidTimerStop.INPUT_TYPES()["optional"]["input"][0], "FLOAT", "STRING")
-    assert CidTimerStop.RETURN_NAMES == ("output", "seconds", "text")
+    assert list(inputs["required"].keys()) == ["id"]
+    assert inputs["optional"]["passthrough"][1]["forceInput"] is True
+    assert CidTimerStop.RETURN_TYPES == (CidTimerStop.INPUT_TYPES()["optional"]["passthrough"][0],)
+    assert CidTimerStop.RETURN_NAMES == ("passthrough",)
     assert CidTimerStop.OUTPUT_NODE is True
 
 
@@ -227,15 +228,13 @@ def test_start_stop_pair_end_to_end(clock):
     clock.advance(7.5)
     ret = CidTimerStop().main("default", payload)
     assert ret["result"][0] is payload
-    assert ret["result"][1] == pytest.approx(7.5)
-    assert ret["result"][2] == "7.50 s"
 
 
 def test_two_stops_split_one_start(clock):
     CidTimerStart().main("t")
     clock.advance(1.0)
-    first = CidTimerStop().main("t")["result"][1]
+    CidTimerStop().main("t")
     clock.advance(2.0)
-    second = CidTimerStop().main("t")["result"][1]
-    assert first == pytest.approx(1.0)
-    assert second == pytest.approx(3.0)
+    CidTimerStop().main("t")
+    # stamps persist; second stop measures from the same start
+    assert timers.stop_timer("t") == pytest.approx(3.0)
