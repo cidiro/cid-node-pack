@@ -57,7 +57,7 @@ class CidTimerStop:
         text = duration.format_duration(elapsed)
         # print() rather than logging: ComfyUI filters INFO records from
         # custom-node loggers, and the console line is meant to be copyable
-        print(f"CidTimerStop [{timer_name}] {text} ({elapsed:.4f} s)")
+        print(f"CidTimerStop [{timer_name}] {text} ({elapsed:.4f} s)", flush=True)
         return {
             "ui": {"text": [text], "elapsed": [elapsed]},
             "result": (input, elapsed, text),
