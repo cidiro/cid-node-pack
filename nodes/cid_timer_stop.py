@@ -6,7 +6,6 @@ from ..utils import timers
 
 logger = logging.getLogger("cid_node_pack")
 
-
 class CidTimerStop:
     """Mark point B of a measured interval and report the elapsed time.
 
@@ -56,9 +55,9 @@ class CidTimerStop:
             raise ValueError("CidTimerStop: 'timer_name' cannot be empty")
         elapsed = timers.stop_timer(timer_name)
         text = duration.format_duration(elapsed)
-        logger.info(
-            "CidTimerStop [%s] %s (%.4f s)", timer_name, text, elapsed
-        )
+        # print() rather than logging: ComfyUI filters INFO records from
+        # custom-node loggers, and the console line is meant to be copyable
+        print(f"CidTimerStop [{timer_name}] {text} ({elapsed:.4f} s)")
         return {
             "ui": {"text": [text], "elapsed": [elapsed]},
             "result": (input, elapsed, text),

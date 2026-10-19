@@ -1,7 +1,6 @@
 """Tests for the CidTimerStart / CidTimerStop timer nodes and helpers."""
 
 import importlib.util
-import logging
 import math
 import sys
 import time
@@ -185,13 +184,13 @@ def test_stop_ui_payload(clock):
     assert ret["ui"]["elapsed"] == [pytest.approx(2.0)]
 
 
-def test_stop_logs_to_console(clock, caplog):
+def test_stop_prints_to_console(clock, capsys):
     timers.start_timer("default")
     clock.advance(83.4)
-    with caplog.at_level(logging.INFO, logger="cid_node_pack"):
-        CidTimerStop().main("default")
-    assert "CidTimerStop [default] 1m 23.4s" in caplog.text
-    assert "(83.4000 s)" in caplog.text
+    CidTimerStop().main("default")
+    out = capsys.readouterr().out
+    assert "CidTimerStop [default] 1m 23.4s" in out
+    assert "(83.4000 s)" in out
 
 
 def test_stop_without_start_raises():
