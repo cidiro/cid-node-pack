@@ -71,6 +71,14 @@ def test_existing_list_index_removes_item(node):
     assert json.loads(result[0]) == {"items": [{"name": "second"}]}
 
 
+def test_negative_index_removes_from_end(node):
+    payload = {"items": [{"name": "first"}, {"name": "second"}]}
+
+    result = node.main(json.dumps(payload), "items/-1")
+
+    assert json.loads(result[0]) == {"items": [{"name": "first"}]}
+
+
 def test_numeric_segment_inside_dict_is_key(node):
     payload = {"items": {"0": "zero", "1": "one"}}
 

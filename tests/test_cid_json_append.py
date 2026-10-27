@@ -76,6 +76,16 @@ def test_existing_list_path_appends_to_nested_list(node):
     assert json.loads(result[0]) == {"items": [{"tags": ["old", "new"]}]}
 
 
+def test_negative_index_path_appends_to_nested_list(node):
+    payload = {"items": [{"tags": ["old"]}, {"tags": ["other"]}]}
+
+    result = node.main("items/-1/tags", '"new"', json.dumps(payload))
+
+    assert json.loads(result[0]) == {
+        "items": [{"tags": ["old"]}, {"tags": ["other", "new"]}]
+    }
+
+
 def test_top_level_slash_key_wins_over_path(node):
     payload = {
         "key_a/key_b": ["literal"],

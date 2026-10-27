@@ -95,11 +95,64 @@ def test_missing_nested_key_raises_with_context(node):
         node.main(json.dumps(payload), "key_a/key_b/missing")
 
 
+def test_negative_index_counts_from_end(node):
+    payload = {"items": ["a", "b", "c", "d", "e", "f", "g"]}
+
+    result = node.main(json.dumps(payload), "items/-5")
+
+    assert result == ("c",)
+
+
+def test_negative_last_index(node):
+    payload = {"items": ["a", "b"]}
+
+    result = node.main(json.dumps(payload), "items/-1")
+
+    assert result == ("b",)
+
+
+def test_negative_index_inside_nested_path(node):
+    payload = {"items": [{"name": "first"}, {"name": "second"}]}
+
+    result = node.main(json.dumps(payload), "items/-1/name")
+
+    assert result == ("second",)
+
+
+def test_negative_zero_behaves_like_zero(node):
+    payload = {"items": ["a", "b"]}
+
+    result = node.main(json.dumps(payload), "items/-0")
+
+    assert result == ("a",)
+
+
+def test_negative_index_out_of_range_raises(node):
+    payload = {"items": ["a", "b"]}
+
+    with pytest.raises(IndexError, match="list index -3 out of range"):
+        node.main(json.dumps(payload), "items/-3")
+
+
+def test_positive_index_out_of_range_raises(node):
+    payload = {"items": ["a", "b"]}
+
+    with pytest.raises(IndexError, match="list index 2 out of range"):
+        node.main(json.dumps(payload), "items/2")
+
+
 def test_invalid_list_index_raises(node):
     payload = {"items": [{"name": "first"}]}
 
-    with pytest.raises(TypeError, match="non-negative list index"):
+    with pytest.raises(TypeError, match="expected a list index"):
         node.main(json.dumps(payload), "items/one/name")
+
+
+def test_lone_minus_is_not_an_index(node):
+    payload = {"items": ["a"]}
+
+    with pytest.raises(TypeError, match="expected a list index"):
+        node.main(json.dumps(payload), "items/-")
 
 
 def test_top_level_slash_key_wins_over_path(node):

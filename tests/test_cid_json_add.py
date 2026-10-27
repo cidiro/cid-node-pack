@@ -84,6 +84,19 @@ def test_top_level_slash_key_wins_over_path(node):
     }
 
 
+def test_negative_index_updates_from_end(node):
+    payload = {"items": [{"name": "first"}, {"name": "second"}]}
+
+    result = node.main("items/-1/name", '"updated"', json.dumps(payload))
+
+    assert json.loads(result[0]) == {"items": [{"name": "first"}, {"name": "updated"}]}
+
+
+def test_negative_index_out_of_range_raises(node):
+    with pytest.raises(IndexError, match="list index -1 out of range"):
+        node.main("items/-1", '"updated"', '{"items": []}')
+
+
 def test_missing_list_parent_raises(node):
     with pytest.raises(TypeError, match="requires an existing list"):
         node.main("items/0/name", '"updated"', "{}")

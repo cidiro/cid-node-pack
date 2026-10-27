@@ -9,22 +9,34 @@ def _path_label(segments):
     return "/".join(segments)
 
 
+def _is_list_index(segment):
+    body = segment[1:] if segment.startswith("-") else segment
+    return body.isdigit()
+
+
 def _require_list_index(segment, full_path, path):
-    if not segment.isdigit():
+    if not _is_list_index(segment):
         raise TypeError(
-            f"The key path '{full_path}' expected a non-negative list index at '{path}', "
+            f"The key path '{full_path}' expected a list index at '{path}', "
             f"but got '{segment}'."
         )
     return int(segment)
 
 
-def _get_list_item(items, index, full_path, path):
-    if index >= len(items):
+def _resolve_list_index(index, items, full_path, path):
+    """Resolve a possibly-negative index against the list length, Python-style."""
+    length = len(items)
+    resolved = index + length if index < 0 else index
+    if resolved < 0 or resolved >= length:
         raise IndexError(
             f"The key path '{full_path}' has list index {index} out of range at '{path}'. "
-            f"List length: {len(items)}"
+            f"List length: {length}"
         )
-    return items[index]
+    return resolved
+
+
+def _get_list_item(items, index, full_path, path):
+    return items[_resolve_list_index(index, items, full_path, path)]
 
 
 def get_json_path_value(data, key):
@@ -78,7 +90,7 @@ def set_json_path_value(data, key, value):
 
         if isinstance(current, dict):
             if segment not in current:
-                if next_segment.isdigit():
+                if _is_list_index(next_segment):
                     raise TypeError(
                         f"The key path '{key}' requires an existing list at '{path}'. "
                         "Missing list parents are not created automatically."
@@ -104,12 +116,7 @@ def set_json_path_value(data, key, value):
         current[final_segment] = value
     elif isinstance(current, list):
         index = _require_list_index(final_segment, key, final_path)
-        if index >= len(current):
-            raise IndexError(
-                f"The key path '{key}' has list index {index} out of range at '{final_path}'. "
-                f"List length: {len(current)}"
-            )
-        current[index] = value
+        current[_resolve_list_index(index, current, key, final_path)] = value
     else:
         parent_path = _path_label(traversed)
         raise TypeError(
@@ -141,7 +148,7 @@ def append_json_path_value(data, key, value):
 
         if isinstance(current, dict):
             if segment not in current:
-                if next_segment.isdigit():
+                if _is_list_index(next_segment):
                     raise TypeError(
                         f"The key path '{key}' requires an existing list at '{path}'. "
                         "Missing list parents are not created automatically."
@@ -229,12 +236,7 @@ def remove_json_path_value(data, key):
 
     if isinstance(current, list):
         index = _require_list_index(final_segment, key, final_path)
-        if index >= len(current):
-            raise IndexError(
-                f"The key path '{key}' has list index {index} out of range at '{final_path}'. "
-                f"List length: {len(current)}"
-            )
-        del current[index]
+        del current[_resolve_list_index(index, current, key, final_path)]
         return True
 
     parent_path = _path_label(traversed)
