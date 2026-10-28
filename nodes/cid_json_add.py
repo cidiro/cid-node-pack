@@ -54,4 +54,4 @@ class CidJsonAdd:
         
         set_json_path_value(data, key, parsed_value)
 
-        return (json.dumps(data, indent=4),) 
+        return (json.dumps(data, indent=2),)

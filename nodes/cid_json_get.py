@@ -39,6 +39,6 @@ class CidJsonGet:
         value = get_json_path_value(data, key)
 
         if isinstance(value, (dict, list)):
-            return (json.dumps(value),)
+            return (json.dumps(value, indent=2),)
         
         return (str(value),)

@@ -57,7 +57,7 @@ def test_loads_and_normalizes_json_from_input_directory(json_load_class, tmp_pat
     result = json_load_class().main("data.json")
 
     assert json.loads(result[0]) == {"name": "cid", "values": [1, 2]}
-    assert result[0] == json.dumps({"name": "cid", "values": [1, 2]}, indent=4)
+    assert result[0] == json.dumps({"name": "cid", "values": [1, 2]}, indent=2)
 
 
 def test_is_changed_updates_when_file_is_rewritten(json_load_class, tmp_path):

@@ -40,9 +40,9 @@ class CidExtractImageMetadata:
             raise RuntimeError(f"Failed to read metadata from '{full_file_path}': {exc}") from exc
 
         try:
-            metadata_json = json.dumps(metadata, ensure_ascii=False, default=str)
+            metadata_json = json.dumps(metadata, ensure_ascii=False, default=str, indent=2)
         except (TypeError, ValueError):
             safe_metadata = {key: str(value) for key, value in metadata.items()}
-            metadata_json = json.dumps(safe_metadata, ensure_ascii=False)
+            metadata_json = json.dumps(safe_metadata, ensure_ascii=False, indent=2)
 
         return (metadata_json,)

@@ -92,10 +92,10 @@ class CidExtractMetadata:
             raise RuntimeError(f"Failed to read metadata from '{full_file_path}': {exc}") from exc
 
         try:
-            return json.dumps(metadata, ensure_ascii=False, default=str)
+            return json.dumps(metadata, ensure_ascii=False, default=str, indent=2)
         except (TypeError, ValueError):
             safe_metadata = {key: str(value) for key, value in metadata.items()}
-            return json.dumps(safe_metadata, ensure_ascii=False)
+            return json.dumps(safe_metadata, ensure_ascii=False, indent=2)
 
     def read_av_metadata(self, full_file_path):
         ffprobe_output = run_ffprobe(full_file_path)

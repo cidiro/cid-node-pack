@@ -1,6 +1,7 @@
 """Tests for CidAnyToString any-to-string conversion."""
 
 import importlib.util
+import json
 import sys
 import types
 from pathlib import Path
@@ -67,9 +68,9 @@ def test_casts_primitives(node, value, expected):
 
 
 def test_casts_containers_as_json(node):
-    assert node.main({"a": 1, "b": [2, 3]}) == ('{"a": 1, "b": [2, 3]}',)
-    assert node.main([1, "two", None]) == ('[1, "two", null]',)
-    assert node.main((1, 2)) == ("[1, 2]",)
+    assert node.main({"a": 1, "b": [2, 3]}) == (json.dumps({"a": 1, "b": [2, 3]}, indent=2),)
+    assert node.main([1, "two", None]) == (json.dumps([1, "two", None], indent=2),)
+    assert node.main((1, 2)) == (json.dumps((1, 2), indent=2),)
 
 
 def test_json_fallback_to_str(node):

@@ -67,4 +67,4 @@ class CidJsonLoad:
         except Exception as e:
             raise RuntimeError(f"An error occurred while reading file '{full_file_path}': {e}") from e
 
-        return (json.dumps(json_data, indent=4),) 
+        return (json.dumps(json_data, indent=2),)

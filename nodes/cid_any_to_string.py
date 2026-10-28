@@ -30,7 +30,7 @@ class CidAnyToString:
         # values JSON cannot represent.
         if isinstance(value, (dict, list, tuple)):
             try:
-                return json.dumps(value, default=str)
+                return json.dumps(value, default=str, indent=2)
             except (TypeError, ValueError):
                 return str(value)
 

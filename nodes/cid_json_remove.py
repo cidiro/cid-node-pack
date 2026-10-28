@@ -41,4 +41,4 @@ class CidJsonRemove:
 
         remove_json_path_value(data, key)
 
-        return (json.dumps(data, indent=4),)
+        return (json.dumps(data, indent=2),)

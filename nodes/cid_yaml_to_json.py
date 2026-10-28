@@ -54,5 +54,5 @@ class CidYamlToJson:
         if data is None:
             data = {}
 
-        json_str = json.dumps(data, indent=4)
+        json_str = json.dumps(data, indent=2)
         return (json_str,)
