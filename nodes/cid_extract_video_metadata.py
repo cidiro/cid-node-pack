@@ -1,7 +1,6 @@
-import json
 import os
 
-from ..utils.metadata_utils import VIDEO_EXTENSIONS, resolve_comfy_file_path, run_ffprobe
+from ..utils.metadata_utils import OUTPUT_MODES, VIDEO_EXTENSIONS, read_video_metadata, resolve_comfy_file_path
 
 
 class CidExtractVideoMetadata:
@@ -16,7 +15,8 @@ class CidExtractVideoMetadata:
         return {
             "required": {
                 "file_path": ("STRING",),
-            }
+            },
+            "optional": {"output_mode": (OUTPUT_MODES, {"default": "normalized"})},
         }
 
     RETURN_TYPES = ("STRING",)
@@ -34,7 +34,7 @@ class CidExtractVideoMetadata:
                 f"Unsupported video extension '{ext}'. Supported: {', '.join(sorted(self.SUPPORTED_EXTENSIONS))}"
             )
 
-    def main(self, file_path):
+    def main(self, file_path, output_mode="normalized"):
         full_file_path = self.find_file(file_path)
         if not full_file_path:
             raise FileNotFoundError(
@@ -43,11 +43,4 @@ class CidExtractVideoMetadata:
 
         self.ensure_supported_extension(full_file_path)
 
-        ffprobe_output = run_ffprobe(full_file_path)
-        try:
-            metadata = json.loads(ffprobe_output)
-        except json.JSONDecodeError as exc:
-            raise ValueError(f"ffprobe returned invalid JSON for '{full_file_path}'.") from exc
-
-        json_str = json.dumps(metadata, ensure_ascii=False, indent=2)
-        return (json_str,)
+        return (read_video_metadata(full_file_path, output_mode),)

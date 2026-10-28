@@ -1,14 +1,16 @@
 import json
 import os
 
-from PIL import Image
-
 from ..utils.metadata_utils import (
     AUDIO_EXTENSIONS,
     IMAGE_EXTENSIONS,
     VIDEO_EXTENSIONS,
+    OUTPUT_MODES,
+    read_image_metadata,
+    read_video_metadata,
     resolve_comfy_file_path,
     run_ffprobe,
+    validate_output_mode,
 )
 
 
@@ -40,7 +42,8 @@ class CidExtractMetadata:
                         "default": "auto",
                     },
                 ),
-            }
+            },
+            "optional": {"output_mode": (OUTPUT_MODES, {"default": "normalized"})},
         }
 
     def find_file(self, file_path):
@@ -84,20 +87,12 @@ class CidExtractMetadata:
             f"Supported video extensions: {video_exts}."
         )
 
-    def read_image_metadata(self, full_file_path):
-        try:
-            with Image.open(full_file_path) as img:
-                metadata = dict(img.info or {})
-        except Exception as exc:
-            raise RuntimeError(f"Failed to read metadata from '{full_file_path}': {exc}") from exc
+    def read_image_metadata(self, full_file_path, output_mode="normalized"):
+        return read_image_metadata(full_file_path, output_mode)
 
-        try:
-            return json.dumps(metadata, ensure_ascii=False, default=str, indent=2)
-        except (TypeError, ValueError):
-            safe_metadata = {key: str(value) for key, value in metadata.items()}
-            return json.dumps(safe_metadata, ensure_ascii=False, indent=2)
-
-    def read_av_metadata(self, full_file_path):
+    def read_av_metadata(self, full_file_path, output_mode="normalized", media_type=None):
+        if (media_type or self.resolve_media_type(full_file_path, "auto")) == "video":
+            return read_video_metadata(full_file_path, output_mode)
         ffprobe_output = run_ffprobe(full_file_path)
         try:
             metadata = json.loads(ffprobe_output)
@@ -106,7 +101,8 @@ class CidExtractMetadata:
 
         return json.dumps(metadata, ensure_ascii=False, indent=2)
 
-    def main(self, file_path, media_type="auto"):
+    def main(self, file_path, media_type="auto", output_mode="normalized"):
+        validate_output_mode(output_mode)
         full_file_path = self.find_file(file_path)
         if not full_file_path:
             raise FileNotFoundError(
@@ -115,9 +111,9 @@ class CidExtractMetadata:
 
         resolved_media_type = self.resolve_media_type(full_file_path, media_type)
         if resolved_media_type == "image":
-            json_str = self.read_image_metadata(full_file_path)
+            json_str = self.read_image_metadata(full_file_path, output_mode)
         else:
-            json_str = self.read_av_metadata(full_file_path)
+            json_str = self.read_av_metadata(full_file_path, output_mode, resolved_media_type)
 
         return (json_str,)
 

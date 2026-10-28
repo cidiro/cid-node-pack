@@ -1,13 +1,9 @@
-import json
-
-from PIL import Image
-
-from ..utils.metadata_utils import resolve_comfy_file_path
+from ..utils.metadata_utils import OUTPUT_MODES, read_image_metadata, resolve_comfy_file_path
 
 
 class CidExtractImageMetadata:
     """
-    Load an image file and return its Pillow metadata dictionary as JSON.
+    Load an image file and return normalized metadata as JSON.
     """
 
     @classmethod
@@ -15,7 +11,8 @@ class CidExtractImageMetadata:
         return {
             "required": {
                 "file_path": ("STRING",),
-            }
+            },
+            "optional": {"output_mode": (OUTPUT_MODES, {"default": "normalized"})},
         }
 
     RETURN_TYPES = ("STRING",)
@@ -26,23 +23,11 @@ class CidExtractImageMetadata:
     def find_file(self, file_path):
         return resolve_comfy_file_path(file_path)
 
-    def main(self, file_path):
+    def main(self, file_path, output_mode="normalized"):
         full_file_path = self.find_file(file_path)
         if not full_file_path:
             raise FileNotFoundError(
                 f"The file '{file_path}' could not be found as an absolute path, or in the ComfyUI input/output directories."
             )
 
-        try:
-            with Image.open(full_file_path) as img:
-                metadata = dict(img.info or {})
-        except Exception as exc:
-            raise RuntimeError(f"Failed to read metadata from '{full_file_path}': {exc}") from exc
-
-        try:
-            metadata_json = json.dumps(metadata, ensure_ascii=False, default=str, indent=2)
-        except (TypeError, ValueError):
-            safe_metadata = {key: str(value) for key, value in metadata.items()}
-            metadata_json = json.dumps(safe_metadata, ensure_ascii=False, indent=2)
-
-        return (metadata_json,)
+        return (read_image_metadata(full_file_path, output_mode),)

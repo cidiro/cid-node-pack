@@ -1,7 +1,42 @@
+import json
 import os
 import subprocess
 
+from PIL import Image
+
 import folder_paths
+
+from .structured_metadata import image_metadata, video_metadata
+
+OUTPUT_MODES = ("normalized", "raw")
+
+
+def validate_output_mode(output_mode):
+    if output_mode not in OUTPUT_MODES:
+        raise ValueError(f"Unsupported output_mode '{output_mode}'. Supported: {', '.join(OUTPUT_MODES)}")
+
+
+def read_image_metadata(full_file_path, output_mode="normalized"):
+    validate_output_mode(output_mode)
+    try:
+        with Image.open(full_file_path) as image:
+            metadata = dict(image.info or {}) if output_mode == "raw" else image_metadata(image)
+    except Exception as exc:
+        raise RuntimeError(f"Failed to read metadata from '{full_file_path}': {exc}") from exc
+    return json.dumps(metadata, ensure_ascii=False, default=str, indent=2, allow_nan=output_mode == "raw")
+
+
+def read_video_metadata(full_file_path, output_mode="normalized"):
+    validate_output_mode(output_mode)
+    ffprobe_output = run_ffprobe(full_file_path, export_xmp=output_mode == "normalized")
+    try:
+        metadata = json.loads(ffprobe_output)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"ffprobe returned invalid JSON for '{full_file_path}'.") from exc
+    if output_mode == "normalized":
+        metadata = video_metadata(metadata)
+    return json.dumps(metadata, ensure_ascii=False, indent=2, allow_nan=output_mode == "raw")
+
 
 IMAGE_EXTENSIONS = {
     ".bmp",
@@ -47,7 +82,7 @@ def resolve_comfy_file_path(file_path):
     return None
 
 
-def run_ffprobe(full_file_path):
+def run_ffprobe(full_file_path, export_xmp=False):
     command = [
         "ffprobe",
         "-v",
@@ -56,8 +91,10 @@ def run_ffprobe(full_file_path):
         "-show_streams",
         "-of",
         "json",
-        full_file_path,
     ]
+    if export_xmp and os.path.splitext(full_file_path)[1].lower() == ".mp4":
+        command.extend(["-export_xmp", "1"])
+    command.append(full_file_path)
 
     try:
         result = subprocess.run(
@@ -82,5 +119,9 @@ __all__ = [
     "VIDEO_EXTENSIONS",
     "resolve_comfy_file_path",
     "run_ffprobe",
+    "OUTPUT_MODES",
+    "read_image_metadata",
+    "read_video_metadata",
+    "validate_output_mode",
 ]
 

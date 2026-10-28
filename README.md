@@ -44,6 +44,57 @@ git clone <this-repository-url> cid-node-pack
 After restart, the nodes appear in ComfyUI with display names ending in
 `(Cid)`.
 
+## Structured metadata extraction
+
+`Extract Metadata (Cid)` returns normalized JSON by default for images and videos.
+Gelbooru fields are directly accessible, so `JSON Get (Cid)` can use plain keys
+such as `tags`, `width`, `height`, or `uploaded_at`:
+
+```json
+{
+  "schema_version": 2,
+  "post_id": 4632336,
+  "tags": ["1girl", "bare_shoulders"],
+  "width": 1091,
+  "height": 1440,
+  "uploaded_at": "2019-03-03T04:30:22Z",
+  "resized": false,
+  "metadata": {}
+}
+```
+
+This example shows only part of the available data. Extraction keeps all post
+fields and tags, with arrays, numbers, and booleans preserved as JSON types.
+The node reads the downloader's JSON record from image/MP4 XMP or WebM container
+tags. Existing downloads work without modifying the files. Older version-1
+records are normalized to the same flat dimension fields and UTC upload dates;
+`uploaded_at_raw` retains the original timestamp and
+`metadata.gelbooru_schema_version` identifies the embedded record version.
+Unknown dates or dates without a timezone keep only their raw value. Root
+`width` and `height` come from the actual image or video stream, even if the
+embedded saved dimensions are stale.
+
+Other information is grouped under `metadata`: `image` holds Pillow information,
+`exif` contains decoded EXIF fields, `xmp` contains the remaining parsed XMP, and
+videos retain `format` and `streams`. Binary values such as ICC profiles become
+`{"byte_length": 588}` summaries; no XML packets or escaped Python byte dumps
+appear in normalized output. ComfyUI `prompt` and `workflow` JSON is parsed into
+objects. Original captions, languages, attribution and other metadata remain
+available here; the image or video itself is never changed.
+
+Valid record values take precedence over individual Gelbooru fields, followed
+by standard keyword/title/description fields. Invalid JSON or XMP falls back to
+remaining readable metadata, with a short message in `metadata.warnings`.
+Missing values remain absent; empty tag lists, zero scores and `false` survive.
+XML DTD/entity declarations and packets larger than 8 MiB are rejected.
+
+The optional `output_mode` input defaults to `normalized`. Select `raw` to get
+the previous Pillow/ffprobe output when an existing workflow needs it. Audio
+extraction keeps its previous ffprobe output in either mode. The legacy image
+and video extraction classes use the same helpers. No additional dependencies
+or runtime network access are required; video extraction uses ffprobe, enabling
+XMP export for MP4 in normalized mode.
+
 ## Wildcards
 
 `Wildcard Processor (Cid)` resolves `__name__` references from the directory in
