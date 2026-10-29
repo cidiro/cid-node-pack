@@ -1,3 +1,4 @@
+from .nodes.cid_image_ab_testing import CidImageABTesting
 from .nodes.cid_save_image import CidSaveImage
 from .nodes.cid_extract_image_metadata import CidExtractImageMetadata
 from .nodes.cid_extract_metadata import CidExtractMetadata
@@ -54,6 +55,7 @@ from .nodes.cid_assert_type import CidAssertType
 WEB_DIRECTORY = "./js"
 
 NODE_CLASS_MAPPINGS = {
+    "CidImageABTesting": CidImageABTesting,
     "CidSaveImage": CidSaveImage,
     "CidExtractMetadata": CidExtractMetadata,
     "CidWildcardProcessor": CidWildcardProcessor,
@@ -106,6 +108,7 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
+    "CidImageABTesting": "Image A/B Testing (Cid)",
     "CidSaveImage": "Save Image (Cid)",
     "CidExtractImageMetadata": "Extract Image Metadata (Cid)",
     "CidExtractMetadata": "Extract Metadata (Cid)",

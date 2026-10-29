@@ -138,3 +138,46 @@ Run the test suite from the repository root:
 ```bash
 pytest
 ```
+
+## Image A/B Testing
+
+**Image A/B Testing (Cid)** is a terminal, interactive preview node. Connect an
+image batch to **IMAGES**, or combine separate IMAGE outputs using **Any List
+(Cid)** first. Lists may contain differently sized batches. There is no output
+slot: the winner appears on the node after workflow execution has completed.
+
+Every workflow run starts a new tournament, even with identical images. The
+initial round compares every unique pair in random order and random A/B
+positions (10 comparisons for five images; 15 for six). Use the hover slider or
+hold-to-compare Click mode, then **Choose A** or **Choose B** to vote.
+
+A clean Condorcet winner wins every initial matchup and every position-reversed
+confirmation. Candidates with contradictory results can recover through fresh
+confirmation: two new victories against every rival, once in each position.
+**Confirmed Condorcet Winner** additionally requires a positive aggregate record
+against every rival across all valid votes. Confirmation expresses observed
+preference consistency, not statistical certainty; no confidence percentage is
+reported. Contradictory decisions remain visible.
+
+The default budget is 30 valid votes. Change **max_votes** at any time; the
+initial budget must accommodate the full round-robin. Adaptive comparisons focus
+on leaders and inconsistent matchups. **End Session** before complete initial
+coverage asks you to select from all images. After full coverage, the fallback
+uses Copeland scores (one point per aggregate head-to-head victory, zero for an
+unresolved tally). Tied leaders require an explicit human selection, separately
+recorded without consuming an A/B vote. Increase the budget and use **Continue**
+to resume a provisional result.
+
+**Undo Last Vote** restores the previous matchup and positions and refunds that
+vote. Undone votes are excluded from coverage, scores, contradictions, and
+confirmation but retained in the audit history. Undo also works after completion
+and can be repeated.
+
+Save the workflow to preserve candidates, votes, pending comparisons, Undo state,
+and the final result. Preview files use ComfyUI's temporary storage and may be
+removed when ComfyUI restarts. If they are missing, history is retained; restore
+the files to inspect the session, or execute the workflow for a **new** tournament.
+Workflow saves do not embed image pixels. The browser owns voting state, so save
+the workflow before closing it; separate browser tabs do not synchronize votes.
+
+Run engine checks with `node tests/test_ab_testing.mjs` in addition to `pytest`.
