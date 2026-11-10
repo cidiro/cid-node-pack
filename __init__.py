@@ -33,6 +33,7 @@ from .nodes.cid_json_to_yaml import CidJsonToYaml
 from .nodes.cid_yaml_to_json import CidYamlToJson
 from .nodes.cid_string_to_float import CidStringToFloat
 from .nodes.cid_string_to_int import CidStringToInt
+from .nodes.cid_decode_unicode_escapes import CidDecodeUnicodeEscapes
 from .nodes.cid_string_contains import CidStringContains
 from .nodes.cid_string_list_add import CidStringListAdd
 from .nodes.cid_get_directory_name import CidGetDirectoryName
@@ -87,6 +88,7 @@ NODE_CLASS_MAPPINGS = {
     "CidYamlToJson": CidYamlToJson,
     "CidStringToFloat": CidStringToFloat,
     "CidStringToInt": CidStringToInt,
+    "CidDecodeUnicodeEscapes": CidDecodeUnicodeEscapes,
     "CidStringContains": CidStringContains,
     "CidStringListAdd": CidStringListAdd,
     "CidGetDirectoryName": CidGetDirectoryName,
@@ -143,6 +145,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "CidYamlToJson": "YAML to JSON (Cid)",
     "CidStringToFloat": "String to Float (Cid)",
     "CidStringToInt": "String to Int (Cid)",
+    "CidDecodeUnicodeEscapes": "Decode Unicode Escapes (Cid)",
     "CidStringContains": "String Contains (Cid)",
     "CidStringListAdd": "String List Add (Cid)",
     "CidGetDirectoryName": "Get Directory Name (Cid)",
