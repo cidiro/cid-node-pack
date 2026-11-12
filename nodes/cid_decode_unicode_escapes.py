@@ -1,15 +1,22 @@
 import re
 from html import unescape
 from html.entities import html5
+from unicodedata import lookup
+from urllib.parse import unquote
 
 
+_CONTROL_ESCAPES = {"n": "\n", "t": "\t", "r": "\r"}
 _ESCAPE = re.compile(
     r"\\\\"
     r"|\\u(?P<high>[dD][89a-bA-B][0-9a-fA-F]{2})"
     r"\\u(?P<low>[dD][c-fC-F][0-9a-fA-F]{2})"
-    r"|\\(?P<scalar>u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8})"
+    r"|\\(?P<scalar>"
+    r"u(?:[0-9a-fA-F]{4}|\{[0-9a-fA-F]+\})|U[0-9a-fA-F]{8}|x[0-9a-fA-F]{2})"
+    r"|\\(?P<control>[ntr])"
+    r"|\\N\{(?P<unicode_name>[A-Za-z0-9 -]+)\}"
     r"|&(?P<numeric>#[0-9]+|#[xX][0-9a-fA-F]+);"
     r"|&(?P<name>[A-Za-z][A-Za-z0-9]*;)"
+    r"|(?P<percent>(?:%[0-9a-fA-F]{2})+)"
 )
 
 
@@ -19,8 +26,9 @@ class CidDecodeUnicodeEscapes:
     FUNCTION = "main"
     CATEGORY = "Cid Node Pack/String"
     DESCRIPTION = (
-        r"Decodes Unicode escapes such as \u00e9 and \U0001F600, "
-        "and HTML character references such as &#039; and &amp;."
+        r"Automatically decodes \n, \t, \r, \xNN, \uXXXX, \UXXXXXXXX, "
+        r"\u{...}, \N{...}, and UTF-16 surrogate pairs, plus "
+        "semicolon-terminated HTML character references and UTF-8 percent escapes."
     )
 
     @classmethod
@@ -46,9 +54,26 @@ class CidDecodeUnicodeEscapes:
 
         scalar = match["scalar"]
         if scalar is not None:
-            code_point = int(scalar[1:], 16)
+            digits = scalar[1:]
+            if digits.startswith("{"):
+                digits = digits[1:-1].lstrip("0") or "0"
+                if len(digits) > 6:
+                    return match[0]
+            code_point = int(digits, 16)
             if code_point <= 0x10FFFF and not 0xD800 <= code_point <= 0xDFFF:
                 return chr(code_point)
+            return match[0]
+
+        control = match["control"]
+        if control is not None:
+            return _CONTROL_ESCAPES[control]
+
+        unicode_name = match["unicode_name"]
+        if unicode_name is not None:
+            try:
+                return lookup(unicode_name)
+            except KeyError:
+                return match[0]
 
         numeric = match["numeric"]
         if numeric is not None:
@@ -63,5 +88,12 @@ class CidDecodeUnicodeEscapes:
         name = match["name"]
         if name is not None:
             return html5.get(name, match[0])
+
+        percent = match["percent"]
+        if percent is not None:
+            try:
+                return unquote(percent, encoding="utf-8", errors="strict")
+            except UnicodeDecodeError:
+                return percent
 
         return match[0]
