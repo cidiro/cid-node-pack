@@ -25,6 +25,17 @@ from nodes.cid_decode_unicode_escapes import CidDecodeUnicodeEscapes
             r"\n \t \xE9 \N{LATIN SMALL LETTER E WITH ACUTE}",
         ),
         (r"\u005cu00e9", r"\u00e9"),
+        ("&#039; &#x27; &#X27;", "' ' '"),
+        ("&apos; &eacute; &amp; &NotEqualTilde;", "' é & ≂̸"),
+        (r"caf\u00e9 &amp; th&#233; &#x1F600;", "café & thé 😀"),
+        (
+            "&notaref; &apos &#039 &#x27 &#; &#x; &#xG; &#-1;",
+            "&notaref; &apos &#039 &#x27 &#; &#x; &#xG; &#-1;",
+        ),
+        ("&#128; &#0; &#xD800; &#1114112; &#x110000;", "€ � � � �"),
+        ("&#" + "0" * 5000 + "39;", "'"),
+        ("&#" + "9" * 5000 + "; &#x" + "F" * 5000 + ";", "� �"),
+        (r"&amp;#039; &amp;apos; \u0026apos; &#92;u00e9", r"&#039; &apos; &apos; \u00e9"),
     ],
 )
 def test_decode_unicode_escapes(value, expected):
