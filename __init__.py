@@ -145,7 +145,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "CidYamlToJson": "YAML to JSON (Cid)",
     "CidStringToFloat": "String to Float (Cid)",
     "CidStringToInt": "String to Int (Cid)",
-    "CidDecodeUnicodeEscapes": "Decode Unicode Escapes (Cid)",
+    "CidDecodeUnicodeEscapes": "Decode Special Characters (Cid)",
     "CidStringContains": "String Contains (Cid)",
     "CidStringListAdd": "String List Add (Cid)",
     "CidGetDirectoryName": "Get Directory Name (Cid)",
